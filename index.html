@@ -1,0 +1,718 @@
+9<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mail Tracking System</title>
+<style>
+body { margin:0; font-family:"Segoe UI", sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#333; min-height:100vh; }
+a { text-decoration:none; color:inherit; cursor:pointer; }
+
+/* ===== Auth Pages ===== */
+.auth-body { display:flex; justify-content:center; align-items:center; height:100vh; background:#f0f2f5; }
+.auth-container { background:white; padding:40px; border-radius:12px; box-shadow:0 3px 12px rgba(0,0,0,0.2); width:320px; text-align:center; }
+.auth-container input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
+.auth-container button { width:100%; padding:10px; border:none; border-radius:8px; background:#800000; color:white; font-weight:bold; cursor:pointer; margin-top:8px; }
+.auth-container button:hover { background:#800000; }
+.auth-container p { margin-top:10px; }
+.auth-container a { color:#800000; cursor:pointer; text-decoration:underline; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  position:fixed;
+  top:0; left:0;
+  width:180px;
+  height:100vh;
+  background:#800000;
+  color:white;
+  padding:20px;
+  transition:0.3s;
+  overflow:hidden;
+}
+.sidebar h3 { text-align:left; margin-bottom:30px; font-size:22px; }
+.sidebar ul { list-style:none; padding:0; }
+.sidebar li { margin:15px 0; }
+.sidebar li a { display:block; padding:8px; border-radius:5px; color:white; }
+.sidebar li a.active { background:#660000; }
+.sidebar li a span { display:inline; }
+.sidebar.collapsed { width:60px; }
+.sidebar.collapsed li a span { display:none; }
+.collapse-btn {
+  position:absolute;
+  top:10px;
+  right:-13px;
+  width:36px;
+  height:36px;
+  background:#800000;
+  border-radius:50%;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:20px;
+  cursor:pointer;
+  z-index:2000;
+}
+
+/* ===== Main Area ===== */
+.main { margin-left:220px; padding:20px; display:none; transition:margin-left 0.3s; }
+.main.shifted-collapsed { margin-left:60px; }
+header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+
+/* ===== Cards ===== */
+.cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:20px; margin-bottom:20px; }
+.card { background:white; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+.card h3 { margin:0; font-size:1.1em; color:#555; }
+.card p { font-size:1.8em; margin:10px 0 0; font-weight:bold; }
+.incoming { border-left:5px solid #3b82f6; }
+.outgoing { border-left:5px solid #10b981; }
+.pending { border-left:5px solid #f59e0b; }
+.done { border-left:5px solid #22c55e; }
+.overdue { border-left:5px solid #ef4444; }
+
+/* ===== Alert Box ===== */
+.alert-box { background:#fff3cd; color:#856404; padding:10px 15px; border-radius:8px; font-weight:500; display:none; margin-bottom:20px; }
+
+/* ===== Table ===== */
+table { width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+th, td { padding:12px 15px; text-align:left; border-bottom:1px solid #eee; }
+th { background:#800000; color:white; }
+tr:hover { background:#f1f5f9; }
+select.status-select { padding:5px; border-radius:5px; }
+
+/* ===== Search Box ===== */
+#searchBox { padding:10px; border-radius:8px; border:1px solid #ccc; width:300px; margin-bottom:10px; }
+
+/* ===== Add Mail Form ===== */
+.add-mail-form { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-top:20px; max-width:600px; }
+.add-mail-form h3 { margin-bottom:15px; }
+.add-mail-form input, .add-mail-form select { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
+.add-mail-form button { padding:10px 20px; border:none; border-radius:8px; background:#800000; color:white; font-weight:bold; cursor:pointer; }
+.add-mail-form button:hover { background:#660000; }
+
+/* ===== Sections ===== */
+.section { display:none; }
+.section.active { display:block; }
+
+/* ===== Status Row Colors ===== */
+.status-Pending { background-color:#fef3c7; }
+.status-Done { background-color:#d1fae5; }
+.status-Overdue { background-color:#fee2e2; }
+
+/* ===== Upload Form ===== */
+.upload-form { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-top:20px; max-width:600px; }
+.upload-form h3 { margin-bottom:15px; }
+.upload-form input[type="file"] { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
+.upload-form button { padding:10px 20px; border:none; border-radius:8px; background:#800000; color:white; font-weight:bold; cursor:pointer; }
+.upload-form button:hover { background:#660000; }
+
+/* ===== Notifications ===== */
+.notifications { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-top:20px; max-width:600px; max-height:300px; overflow-y:auto; }
+.notifications h3 { margin-bottom:15px; }
+.notification { background:#f8f9fa; padding:10px; margin:5px 0; border-radius:8px; border-left:5px solid #800000; }
+.notification .time { font-size:0.8em; color:#666; }
+</style>
+</head>
+<body>
+
+<!-- ===== Auth Pages ===== -->
+<div class="auth-body" id="loginPage">
+  <div class="auth-container">
+    <h2>Staff Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="loginError" style="color:red;"></p>
+    <p><a onclick="showSignup()">Sign Up</a> | <a onclick="showForgot()">Forgot Password?</a></p>
+  </div>
+</div>
+
+<div class="auth-body" id="signupPage" style="display:none;">
+  <div class="auth-container">
+    <h2>Staff Sign Up</h2>
+    <input type="text" id="signupUser" placeholder="Username">
+    <input type="password" id="signupPass" placeholder="Password">
+    <button onclick="signup()">Sign Up</button>
+    <p id="signupError" style="color:red;"></p>
+    <p><a onclick="showLogin()">Back to Login</a></p>
+  </div>
+</div>
+
+<div class="auth-body" id="forgotPage" style="display:none;">
+  <div class="auth-container">
+    <h2>Forgot Password</h2>
+    <input type="text" id="forgotUser" placeholder="Username">
+    <button onclick="forgotPassword()">Retrieve Password</button>
+    <p id="forgotMsg" style="color:green;"></p>
+    <p><a onclick="showLogin()">Back to Login</a></p>
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<div class="sidebar" id="sidebar">
+  <h3>Mail Tracker</h3>
+  <div class="collapse-btn" id="sidebarToggle" onclick="toggleSidebar()">×</div>
+  <ul>
+    <li><a onclick="showSection('dashboard')" id="link-dashboard"><span>Dashboard</span></a></li>
+    <li><a onclick="showSection('addMail')" id="link-addMail"><span>Add New Mail</span></a></li>
+    <li><a onclick="showSection('allMails')" id="link-allMails"><span>All Mails</span></a></li>
+    <li><a onclick="showSection('reports')" id="link-reports"><span>Reports</span></a></li>
+    <li><a onclick="showSection('generateReport')" id="link-generateReport"><span>Generate Report</span></a></li>
+    <li><a onclick="showSection('uploadMails')" id="link-uploadMails"><span>Upload Mails</span></a></li>
+    <li><a onclick="logout()"><span>Logout</span></a></li>
+  </ul>
+</div>
+
+<!-- ===== Main Area ===== -->
+<div class="main" id="mainArea">
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="section active">
+    <header>
+      <h2>Dashboard</h2>
+      <div id="alert-box" class="alert-box"></div>
+    </header>
+    <div class="cards">
+      <div class="card incoming"><h3>Incoming</h3><p id="incoming-count">0</p></div>
+      <div class="card outgoing"><h3>Outgoing</h3><p id="outgoing-count">0</p></div>
+      <div class="card pending"><h3>Pending</h3><p id="pending-count">0</p></div>
+      <div class="card done"><h3>Done</h3><p id="done-count">0</p></div>
+      <div class="card overdue"><h3>Overdue</h3><p id="overdue-count">0</p></div>
+    </div>
+    <div class="add-mail-form" style="margin-top:30px;">
+      <h3>Pending Mails Overview</h3>
+      <table id="pendingMailsTable">
+        <thead>
+          <tr>
+            <th>Mail Type</th>
+            <th>Subject</th>
+            <th>Sender</th>
+            <th>Receiver</th>
+            <th>Department</th>
+            <th>Date Sent</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="pendingMailsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add Mail -->
+  <div id="addMail" class="section">
+    <header><h2>Add New Mail</h2></header>
+    <div class="add-mail-form">
+      <h3>Enter Mail Details</h3>
+      <form id="mailForm">
+        <label>Mail Type</label>
+        <select id="mailType" required>
+          <option value="">Select</option>
+          <option value="Incoming">Incoming</option>
+          <option value="Outgoing">Outgoing</option>
+        </select>
+        <label>Subject</label>
+        <input type="text" id="subject" placeholder="Enter mail subject" required>
+        <label>Sender</label>
+        <input type="text" id="sender" placeholder="Enter sender name" required>
+        <label>Receiver</label>
+        <input type="text" id="receiver" placeholder="Enter receiver name" required>
+        <label>Department</label>
+        <input type="text" id="department" placeholder="Enter department" required>
+        <label>Date</label>
+        <input type="datetime-local" id="mailDate" required>
+        <label>Status</label>
+        <select id="status" required>
+          <option value="">Select</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+        <button type="submit">Add Mail</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- All Mails -->
+  <div id="allMails" class="section">
+    <header>
+      <h2>All Mails</h2>
+      <input type="text" id="searchBox" placeholder="Search by sender or department..." onkeyup="filterTable()">
+    </header>
+    <table id="mailTable">
+      <thead>
+        <tr>
+          <th>Mail Type</th>
+          <th>Subject</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Department</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Added By</th>
+        </tr>
+      </thead>
+      <tbody id="mail-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Reports -->
+  <div id="reports" class="section">
+    <header>
+      <h2>Mail Reports</h2>
+    </header>
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>Mail Type</th>
+          <th>Subject</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Department</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Added By</th>
+        </tr>
+      </thead>
+      <tbody id="report-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Generate Report -->
+  <div id="generateReport" class="section">
+    <header><h2>Generate Report</h2></header>
+    <div class="add-mail-form">
+      <label>Select Mail Type for Report:</label>
+      <select id="reportFilter">
+        <option value="All">All</option>
+        <option value="Incoming">Incoming</option>
+        <option value="Outgoing">Outgoing</option>
+        <option value="Pending">Pending</option>
+        <option value="Done">Done</option>
+      </select>
+      <button onclick="generateReport()">Generate</button>
+      <table id="generatedReportTable" style="margin-top:20px;">
+        <thead>
+          <tr>
+            <th>Mail Type</th>
+            <th>Subject</th>
+            <th>Sender</th>
+            <th>Receiver</th>
+            <th>Department</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Added By</th>
+          </tr>
+        </thead>
+        <tbody id="generatedReportTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Upload Mails -->
+  <div id="uploadMails" class="section">
+    <header><h2>Upload Mails</h2></header>
+    <div class="upload-form">
+      <h3>Upload CSV or Excel File</h3>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+      <button onclick="uploadFile()">Upload</button>
+      <p id="uploadStatus"></p>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="notifications" class="section">
+    <header><h2>Notifications</h2></header>
+    <div class="notifications">
+      <h3>Recent Notifications</h3>
+      <div id="notificationList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== API Base URL =====
+const API_BASE = 'https://mail-tracking-system-sxn8.onrender.com';
+
+// ===== Auth & Users =====
+if(!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify([{username:'staff1', password:'1234'}]));
+
+function showLogin(){ document.getElementById('loginPage').style.display='flex'; document.getElementById('signupPage').style.display='none'; document.getElementById('forgotPage').style.display='none'; }
+function showSignup(){ document.getElementById('loginPage').style.display='none'; document.getElementById('signupPage').style.display='flex'; document.getElementById('forgotPage').style.display='none'; }
+function showForgot(){ document.getElementById('loginPage').style.display='none'; document.getElementById('signupPage').style.display='none'; document.getElementById('forgotPage').style.display='flex'; }
+
+function login(){
+  const uname=document.getElementById('username').value;
+  const pwd=document.getElementById('password').value;
+  const users=JSON.parse(localStorage.getItem('users'));
+  const validUser=users.find(u=>u.username===uname && u.password===pwd);
+  if(validUser){
+    localStorage.setItem('loggedInUser', uname);
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('sidebar').style.display='block';
+    document.getElementById('mainArea').style.display='block';
+    updateDashboardCounts();
+  } else document.getElementById('loginError').textContent="Invalid username or password";
+}
+
+function signup(){
+  const uname=document.getElementById('signupUser').value;
+  const pwd=document.getElementById('signupPass').value;
+  const users=JSON.parse(localStorage.getItem('users'));
+  if(users.find(u=>u.username===uname)){ document.getElementById('signupError').textContent="Username already exists"; return; }
+  users.push({username:uname,password:pwd});
+  localStorage.setItem('users', JSON.stringify(users));
+  alert('Sign up successful! Please login.');
+  showLogin();
+}
+
+function forgotPassword(){
+  const uname=document.getElementById('forgotUser').value;
+  const users=JSON.parse(localStorage.getItem('users'));
+  const user=users.find(u=>u.username===uname);
+  const msg=document.getElementById('forgotMsg');
+  msg.style.color='green';
+  msg.textContent=user?`Your password is: ${user.password}`:'Username not found';
+}
+
+function logout(){
+  localStorage.removeItem('loggedInUser');
+  document.getElementById('loginPage').style.display='flex';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('mainArea').style.display='none';
+}
+
+window.onload=function(){
+  const loggedInUser=localStorage.getItem('loggedInUser');
+  if(loggedInUser){
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('sidebar').style.display='block';
+    document.getElementById('mainArea').style.display='block';
+    loadMails();
+    connectWebSocket();
+  }
+}
+
+// ===== Sections =====
+function showSection(sectionId){
+  document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));
+  document.querySelectorAll('.sidebar a').forEach(link=>link.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+  const link=document.getElementById('link-'+sectionId);
+  if(link) link.classList.add('active');
+  if(sectionId==='reports') populateReports();
+  if(sectionId==='dashboard') loadMails(); // Refresh dashboard data
+}
+
+// ===== Sidebar Collapse =====
+function toggleSidebar() {
+  const sidebar=document.getElementById('sidebar');
+  const main=document.getElementById('mainArea');
+  const toggleBtn=document.getElementById('sidebarToggle');
+  sidebar.classList.toggle('collapsed');
+  main.classList.toggle('shifted-collapsed');
+  toggleBtn.textContent = sidebar.classList.contains('collapsed') ? "=" : "×";
+}
+
+// ===== API Functions =====
+async function apiRequest(url, options = {}) {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    return await response.json();
+  } catch (error) {
+    console.error('API Error:', error);
+    alert('Error communicating with server: ' + error.message);
+    throw error;
+  }
+}
+
+async function loadMails() {
+  try {
+    const mails = await apiRequest(`${API_BASE}/mails`);
+    const tbody = document.getElementById('mail-tbody');
+    tbody.innerHTML = '';
+    mails.forEach(mail => {
+      const row = tbody.insertRow();
+      row.insertCell(0).textContent = mail.sender ? 'Incoming' : 'Outgoing'; // Simple logic, adjust as needed
+      row.insertCell(1).textContent = mail.document;
+      row.insertCell(2).textContent = mail.sender;
+      row.insertCell(3).textContent = mail.recipient;
+      row.insertCell(4).textContent = mail.name; // Using name as department placeholder
+      row.insertCell(5).textContent = new Date(mail.date_sent).toLocaleString();
+
+      const statusCell = row.insertCell(6);
+      const select = document.createElement('select');
+      select.className = "status-select";
+      select.dataset.mailId = mail.id;
+      ["pending", "completed", "overdue"].forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.text = opt.charAt(0).toUpperCase() + opt.slice(1);
+        if (opt === mail.status) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', updateMailStatus);
+      statusCell.appendChild(select);
+
+      row.insertCell(7).textContent = 'API'; // Placeholder
+    });
+    updateDashboardCounts();
+  } catch (error) {
+    console.error('Failed to load mails:', error);
+  }
+}
+
+async function updateMailStatus(event) {
+  const select = event.target;
+  const mailId = select.dataset.mailId;
+  const newStatus = select.value;
+  try {
+    await apiRequest(`${API_BASE}/mails/${mailId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    updateDashboardCounts();
+  } catch (error) {
+    console.error('Failed to update status:', error);
+  }
+}
+
+// ===== Mail Handling =====
+document.getElementById('mailForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const mailType = document.getElementById('mailType').value;
+  const subject = document.getElementById('subject').value;
+  const sender = document.getElementById('sender').value;
+  const receiver = document.getElementById('receiver').value;
+  const department = document.getElementById('department').value;
+  const mailDate = document.getElementById('mailDate').value;
+  const status = document.getElementById('status').value.toLowerCase();
+
+  try {
+    const newMail = await apiRequest(`${API_BASE}/mails`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: department, // Using department as name
+        sender: sender,
+        document: subject,
+        recipient: receiver,
+        date_sent: new Date(mailDate).toISOString(),
+        status: status
+      })
+    });
+    document.getElementById('mailForm').reset();
+    loadMails(); // Reload mails
+    showSection('allMails');
+  } catch (error) {
+    console.error('Failed to add mail:', error);
+  }
+});
+
+// ===== Dashboard Counts =====
+function updateDashboardCounts(){
+  const rows=document.querySelectorAll('#mailTable tbody tr');
+  let incoming=0, outgoing=0, pending=0, done=0, overdue=0;
+  const pendingMails = [];
+  const now=new Date();
+  rows.forEach(row=>{
+    const mailType=row.cells[0].textContent;
+    const statusSelect=row.cells[6].querySelector('select');
+    const status=statusSelect? statusSelect.value.toLowerCase() : row.cells[6].textContent.toLowerCase();
+    const dateStr=row.cells[5].textContent;
+    const mailDate=new Date(dateStr);
+    const diffHours=(now-mailDate)/(1000*60*60);
+
+    if(mailType==="Incoming") incoming++;
+    if(mailType==="Outgoing") outgoing++;
+    if(status==="pending") {
+      pending++;
+      pendingMails.push({
+        type: mailType,
+        subject: row.cells[1].textContent,
+        sender: row.cells[2].textContent,
+        receiver: row.cells[3].textContent,
+        department: row.cells[4].textContent,
+        date: dateStr,
+        status: status
+      });
+    }
+    if(status==="completed") done++;
+
+    let rowOverdue=false;
+    if((mailType==="Incoming" && diffHours>=24 && status!=="completed") || (mailType==="Outgoing" && diffHours>=48 && status!=="completed")){
+      overdue++; rowOverdue=true;
+    }
+
+    row.classList.remove("status-Pending","status-Done","status-Overdue");
+    if(rowOverdue) row.classList.add("status-Overdue");
+    else if(status==="pending") row.classList.add("status-Pending");
+    else if(status==="completed") row.classList.add("status-Done");
+  });
+
+  document.getElementById('incoming-count').textContent=incoming;
+  document.getElementById('outgoing-count').textContent=outgoing;
+  document.getElementById('pending-count').textContent=pending;
+  document.getElementById('done-count').textContent=done;
+  document.getElementById('overdue-count').textContent=overdue;
+
+  const alertBox=document.getElementById('alert-box');
+  alertBox.style.display=overdue>0?'block':'none';
+  alertBox.innerHTML=overdue>0?`<a onclick="showOverdueMails()" style="cursor:pointer;">⚠ You have ${overdue} overdue mail(s)! Click to view and mark reminder sent.</a>`:'';
+
+  // Populate pending mails table
+  const pendingTbody = document.getElementById('pendingMailsTbody');
+  pendingTbody.innerHTML = '';
+  pendingMails.forEach(mail => {
+    const row = pendingTbody.insertRow();
+    row.insertCell(0).textContent = mail.type;
+    row.insertCell(1).textContent = mail.subject;
+    row.insertCell(2).textContent = mail.sender;
+    row.insertCell(3).textContent = mail.receiver;
+    row.insertCell(4).textContent = mail.department;
+    row.insertCell(5).textContent = mail.date;
+    row.insertCell(6).textContent = mail.status.charAt(0).toUpperCase() + mail.status.slice(1);
+  });
+}
+
+// ===== Filter =====
+function filterTable(){
+  const filter=document.getElementById('searchBox').value.toLowerCase();
+  const rows=document.querySelectorAll('#mailTable tbody tr');
+  rows.forEach(row=>{
+    const sender=row.cells[2].textContent.toLowerCase();
+    const dept=row.cells[4].textContent.toLowerCase();
+    row.style.display=(sender.includes(filter)||dept.includes(filter))?'':'none';
+  });
+}
+
+// ===== Reports =====
+function populateReports(){
+  const tbody=document.getElementById('report-tbody');
+  tbody.innerHTML='';
+  const rows=document.querySelectorAll('#mailTable tbody tr');
+  rows.forEach(row=>{
+    const newRow=tbody.insertRow();
+    for(let i=0;i<8;i++){
+      const cell=newRow.insertCell(i);
+      if(i===6){
+        const sel=row.cells[6].querySelector('select');
+        const select=document.createElement('select');
+        ["pending","completed"].forEach(opt=>{
+          const option=document.createElement('option'); option.text=opt;
+          if(sel && sel.value===opt) option.selected=true;
+          select.addEventListener('change',updateDashboardCounts);
+          cell.appendChild(select);
+        });
+      } else cell.textContent=row.cells[i].textContent;
+    }
+  });
+}
+
+// ===== Generate Report =====
+function generateReport(){
+  const filter=document.getElementById('reportFilter').value;
+  const tbody=document.getElementById('generatedReportTbody');
+  tbody.innerHTML='';
+  document.querySelectorAll('#mailTable tbody tr').forEach(row=>{
+    const mailType=row.cells[0].textContent;
+    const status=row.cells[6].querySelector('select').value.toLowerCase();
+    if(filter==='All' || mailType===filter || status===filter.toLowerCase()){
+      const newRow=tbody.insertRow();
+      for(let i=0;i<8;i++){
+        const cell=newRow.insertCell(i);
+        if(i===6){
+          const select=document.createElement('select');
+          ["pending","completed"].forEach(opt=>{
+            const option=document.createElement('option'); option.text=opt;
+            if(opt===status) option.selected=true;
+            cell.appendChild(select);
+          });
+        } else cell.textContent=row.cells[i].textContent;
+      }
+    }
+  });
+}
+
+// ===== Upload Mails =====
+async function uploadFile() {
+  const fileInput = document.getElementById('fileInput');
+  const status = document.getElementById('uploadStatus');
+  if (!fileInput.files[0]) {
+    status.textContent = 'Please select a file.';
+    status.style.color = 'red';
+    return;
+  }
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  try {
+    const response = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Upload failed');
+    }
+    const result = await response.json();
+    status.textContent = `Uploaded ${result.count} mails successfully.`;
+    status.style.color = 'green';
+    loadMails(); // Refresh mails
+    alert(`Upload successful! ${result.count} mails processed.`);
+  } catch (error) {
+    status.textContent = 'Upload failed: ' + error.message;
+    status.style.color = 'red';
+  }
+}
+
+// ===== WebSocket for Real-time Notifications =====
+let ws;
+function connectWebSocket() {
+  ws = new WebSocket('wss://mail-tracking-system-sxn8.onrender.com/ws'); // Updated to deployed backend
+  ws.onopen = function() {
+    console.log('WebSocket connected');
+  };
+  ws.onmessage = function(event) {
+    const notification = JSON.parse(event.data);
+    addNotification(notification.message);
+  };
+  ws.onclose = function() {
+    console.log('WebSocket closed, reconnecting...');
+    setTimeout(connectWebSocket, 1000); // Reconnect
+  };
+  ws.onerror = function(error) {
+    console.error('WebSocket error:', error);
+  };
+}
+
+function addNotification(message) {
+  const list = document.getElementById('notificationList');
+  const div = document.createElement('div');
+  div.className = 'notification';
+  div.innerHTML = `<span>${message}</span><div class="time">${new Date().toLocaleTimeString()}</div>`;
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight; // Auto scroll to bottom
+}
+
+// ===== Overdue Notifications =====
+setInterval(checkOverdueMails, 60000);
+function checkOverdueMails(){
+  const rows=document.querySelectorAll('#mailTable tbody tr');
+  const now=new Date();
+  let overdueIncoming=0, overdueOutgoing=0;
+  rows.forEach(row=>{
+    const mailType=row.cells[0].textContent;
+    const status=row.cells[6].querySelector('select').value.toLowerCase();
+    const mailDate=new Date(row.cells[5].textContent);
+    const diffHours=(now-mailDate)/(1000*60*60);
+    if(mailType==="Incoming" && diffHours>=24 && status!=="completed") overdueIncoming++;
+    if(mailType==="Outgoing" && diffHours>=48 && status!=="completed") overdueOutgoing++;
+  });
+  if(overdueIncoming>0 || overdueOutgoing>0){
+    alert(`Overdue Notification!\nIncoming mails overdue: ${overdueIncoming}\nOutgoing mails overdue: ${overdueOutgoing}`);
+  }
+}
+</script>
+</body>
+</html>
