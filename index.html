@@ -203,31 +203,33 @@ select.status-select { padding:5px; border-radius:5px; }
     <header><h2>Add New Mail</h2></header>
     <div class="add-mail-form">
       <h3>Enter Mail Details</h3>
-      <form id="mailForm">
-        <label>Mail Type</label>
-        <select id="mailType" required>
-          <option value="">Select</option>
-          <option value="Incoming">Incoming</option>
-          <option value="Outgoing">Outgoing</option>
-        </select>
-        <label>Subject</label>
-        <input type="text" id="subject" placeholder="Enter mail subject" required>
-        <label>Sender</label>
-        <input type="text" id="sender" placeholder="Enter sender name" required>
-        <label>Receiver</label>
-        <input type="text" id="receiver" placeholder="Enter receiver name" required>
-        <label>Department</label>
-        <input type="text" id="department" placeholder="Enter department" required>
-        <label>Date</label>
-        <input type="datetime-local" id="mailDate" required>
-        <label>Status</label>
-        <select id="status" required>
-          <option value="">Select</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-        </select>
-        <button type="submit">Add Mail</button>
-      </form>
+  <form id="mailForm">
+    <label>Mail Type</label>
+    <select id="mailType" required>
+      <option value="">Select</option>
+      <option value="Incoming">Incoming</option>
+      <option value="Outgoing">Outgoing</option>
+    </select>
+    <label>Reply to EKSU Ref (optional)</label>
+    <input type="text" id="replyToEksuRef" placeholder="Enter Reply to EKSU Ref (if applicable)">
+    <label>Subject</label>
+    <input type="text" id="subject" placeholder="Enter mail subject" required>
+    <label>Sender</label>
+    <input type="text" id="sender" placeholder="Enter sender name" required>
+    <label>Receiver</label>
+    <input type="text" id="receiver" placeholder="Enter receiver name" required>
+    <label>Department</label>
+    <input type="text" id="department" placeholder="Enter department" required>
+    <label>Date</label>
+    <input type="datetime-local" id="mailDate" required>
+    <label>Status</label>
+    <select id="status" required>
+      <option value="">Select</option>
+      <option value="pending">Pending</option>
+      <option value="completed">Completed</option>
+    </select>
+    <button type="submit">Add Mail</button>
+  </form>
     </div>
   </div>
 
@@ -241,6 +243,7 @@ select.status-select { padding:5px; border-radius:5px; }
       <thead>
         <tr>
           <th>Mail Type</th>
+          <th>EKSU Ref</th>
           <th>Subject</th>
           <th>Sender</th>
           <th>Receiver</th>
@@ -433,14 +436,26 @@ async function loadMails() {
     tbody.innerHTML = '';
     mails.forEach(mail => {
       const row = tbody.insertRow();
-      row.insertCell(0).textContent = mail.sender ? 'Incoming' : 'Outgoing'; // Simple logic, adjust as needed
-      row.insertCell(1).textContent = mail.document;
-      row.insertCell(2).textContent = mail.sender;
-      row.insertCell(3).textContent = mail.recipient;
-      row.insertCell(4).textContent = mail.name; // Using name as department placeholder
-      row.insertCell(5).textContent = new Date(mail.date_sent).toLocaleString();
 
-      const statusCell = row.insertCell(6);
+      let mailType = '';
+      if(mail.sender && mail.recipient) {
+        mailType = 'Incoming'; // We treat mails with both sender and recipient as Incoming (customize as needed)
+      } else if(mail.sender) {
+        mailType = 'Incoming';
+      } else if(mail.recipient) {
+        mailType = 'Outgoing';
+      } else {
+        mailType = 'Unknown';
+      }
+      row.insertCell(0).textContent = mailType;
+      row.insertCell(1).textContent = mail.eksu_ref || ''; // Display EKSU Ref
+      row.insertCell(2).textContent = mail.document;
+      row.insertCell(3).textContent = mail.sender;
+      row.insertCell(4).textContent = mail.recipient;
+      row.insertCell(5).textContent = mail.name; // Using name as department placeholder
+      row.insertCell(6).textContent = new Date(mail.date_sent).toLocaleString();
+
+      const statusCell = row.insertCell(7);
       const select = document.createElement('select');
       select.className = "status-select";
       select.dataset.mailId = mail.id;
@@ -454,7 +469,7 @@ async function loadMails() {
       select.addEventListener('change', updateMailStatus);
       statusCell.appendChild(select);
 
-      row.insertCell(7).textContent = 'API'; // Placeholder
+      row.insertCell(8).textContent = 'API'; // Placeholder
     });
     updateDashboardCounts();
   } catch (error) {
@@ -482,6 +497,7 @@ async function updateMailStatus(event) {
 document.getElementById('mailForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const mailType = document.getElementById('mailType').value;
+  const replyToEksuRef = document.getElementById('replyToEksuRef').value.trim();
   const subject = document.getElementById('subject').value;
   const sender = document.getElementById('sender').value;
   const receiver = document.getElementById('receiver').value;
@@ -499,7 +515,8 @@ document.getElementById('mailForm').addEventListener('submit', async function(e)
         document: subject,
         recipient: receiver,
         date_sent: new Date(mailDate).toISOString(),
-        status: status
+        status: status,
+        reply_to_eksu_ref: replyToEksuRef || undefined
       })
     });
     document.getElementById('mailForm').reset();
