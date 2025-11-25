@@ -606,14 +606,80 @@ function updateDashboardCounts(){
 }
 
 // ===== Filter =====
-function filterTable(){
-  const filter=document.getElementById('searchBox').value.toLowerCase();
+async function filterTable(){
+  const filter=document.getElementById('searchBox').value.trim();
+  const tbody=document.getElementById('mail-tbody');
+
+  if(filter.toUpperCase().startsWith("EKSU")){
+    // Search for eksu_ref via API
+    try {
+      const mail = await apiRequest(`${API_BASE}/mails/ref/${filter.toUpperCase()}`);
+      tbody.innerHTML = '';
+      const row = tbody.insertRow();
+
+      let mailType = '';
+      if(mail.sender && mail.recipient) {
+        mailType = 'Incoming'; // We treat mails with both sender and recipient as Incoming (customize as needed)
+      } else if(mail.sender) {
+        mailType = 'Incoming';
+      } else if(mail.recipient) {
+        mailType = 'Outgoing';
+      } else {
+        mailType = 'Unknown';
+      }
+      row.insertCell(0).textContent = mailType;
+      row.insertCell(1).textContent = mail.eksu_ref || ''; // Display EKSU Ref
+      row.insertCell(2).textContent = mail.document;
+      row.insertCell(3).textContent = mail.sender;
+      row.insertCell(4).textContent = mail.recipient;
+      row.insertCell(5).textContent = mail.name; // Using name as department placeholder
+      row.insertCell(6).textContent = new Date(mail.date_sent).toLocaleString();
+
+      const statusCell = row.insertCell(7);
+      const select = document.createElement('select');
+      select.className = "status-select";
+      select.dataset.mailId = mail.id;
+      ["pending", "completed", "overdue"].forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.text = opt.charAt(0).toUpperCase() + opt.slice(1);
+        if (opt === mail.status) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', updateMailStatus);
+      statusCell.appendChild(select);
+
+      const reminderCell = row.insertCell(8);
+      const reminderSentAt = mail.reminder_sent_at;
+      if (reminderSentAt) {
+        reminderCell.textContent = new Date(reminderSentAt).toLocaleString();
+      } else {
+        const markButton = document.createElement('button');
+        markButton.textContent = 'Mark Sent';
+        markButton.onclick = () => markReminderSent(mail.id);
+        reminderCell.appendChild(markButton);
+      }
+
+      row.insertCell(9).textContent = 'API'; // Placeholder
+      updateDashboardCounts();
+    } catch (error) {
+      console.error('Failed to fetch mail by EKSU Ref:', error);
+      // fallback to filtering all table rows in case of error or mail not found
+      filterTableFallback(filter.toLowerCase());
+    }
+  } else {
+    filterTableFallback(filter.toLowerCase());
+  }
+}
+
+function filterTableFallback(filter) {
   const rows=document.querySelectorAll('#mailTable tbody tr');
   rows.forEach(row=>{
-    const sender=row.cells[2].textContent.toLowerCase();
-    const dept=row.cells[4].textContent.toLowerCase();
+    const sender=row.cells[3].textContent.toLowerCase();
+    const dept=row.cells[5].textContent.toLowerCase();
     row.style.display=(sender.includes(filter)||dept.includes(filter))?'':'none';
   });
+  updateDashboardCounts();
 }
 
 // ===== Reports =====
