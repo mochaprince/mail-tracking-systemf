@@ -250,6 +250,7 @@ select.status-select { padding:5px; border-radius:5px; }
           <th>Department</th>
           <th>Date</th>
           <th>Status</th>
+          <th>Reminder Sent</th>
           <th>Added By</th>
         </tr>
       </thead>
@@ -469,7 +470,18 @@ async function loadMails() {
       select.addEventListener('change', updateMailStatus);
       statusCell.appendChild(select);
 
-      row.insertCell(8).textContent = 'API'; // Placeholder
+      const reminderCell = row.insertCell(8);
+      const reminderSentAt = mail.reminder_sent_at;
+      if (reminderSentAt) {
+        reminderCell.textContent = new Date(reminderSentAt).toLocaleString();
+      } else {
+        const markButton = document.createElement('button');
+        markButton.textContent = 'Mark Sent';
+        markButton.onclick = () => markReminderSent(mail.id);
+        reminderCell.appendChild(markButton);
+      }
+
+      row.insertCell(9).textContent = 'API'; // Placeholder
     });
     updateDashboardCounts();
   } catch (error) {
