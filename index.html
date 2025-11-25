@@ -457,8 +457,14 @@ async function loadMails() {
       row.insertCell(6).textContent = new Date(mail.date_sent).toLocaleString();
 
       const statusCell = row.insertCell(7);
+      // Display status as text by default
+      const statusText = document.createElement('span');
+      statusText.textContent = mail.status.charAt(0).toUpperCase() + mail.status.slice(1);
+
+      // Create select but keep it hidden initially
       const select = document.createElement('select');
       select.className = "status-select";
+      select.style.display = 'none';
       select.dataset.mailId = mail.id;
       ["pending", "completed", "overdue"].forEach(opt => {
         const option = document.createElement('option');
@@ -468,7 +474,22 @@ async function loadMails() {
         select.appendChild(option);
       });
       select.addEventListener('change', updateMailStatus);
+
+      // Toggle between text and select on click
+      statusCell.appendChild(statusText);
       statusCell.appendChild(select);
+
+      statusCell.addEventListener('click', () => {
+        statusText.style.display = 'none';
+        select.style.display = 'inline';
+        select.focus();
+      });
+
+      select.addEventListener('blur', () => {
+        statusText.textContent = select.value.charAt(0).toUpperCase() + select.value.slice(1);
+        statusText.style.display = 'inline';
+        select.style.display = 'none';
+      });
 
       const reminderCell = row.insertCell(8);
       const reminderSentAt = mail.reminder_sent_at;
