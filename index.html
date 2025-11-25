@@ -438,16 +438,9 @@ async function loadMails() {
     mails.forEach(mail => {
       const row = tbody.insertRow();
 
-      let mailType = '';
-      if(mail.sender && mail.recipient) {
-        mailType = 'Incoming'; // We treat mails with both sender and recipient as Incoming (customize as needed)
-      } else if(mail.sender) {
-        mailType = 'Incoming';
-      } else if(mail.recipient) {
-        mailType = 'Outgoing';
-      } else {
-        mailType = 'Unknown';
-      }
+      // Use mail_type from backend if available
+      let mailType = (mail.mail_type) ? mail.mail_type : 'Unknown';
+
       row.insertCell(0).textContent = mailType;
       row.insertCell(1).textContent = mail.eksu_ref || ''; // Display EKSU Ref
       row.insertCell(2).textContent = mail.document;
@@ -455,6 +448,7 @@ async function loadMails() {
       row.insertCell(4).textContent = mail.recipient;
       row.insertCell(5).textContent = mail.name; // Using name as department placeholder
       row.insertCell(6).textContent = new Date(mail.date_sent).toLocaleString();
+
 
       const statusCell = row.insertCell(7);
       // Display status as text by default
@@ -549,6 +543,7 @@ document.getElementById('mailForm').addEventListener('submit', async function(e)
         recipient: receiver,
         date_sent: new Date(mailDate).toISOString(),
         status: status,
+        mail_type: mailType,  // Include mailType field for backend
         reply_to_eksu_ref: replyToEksuRef || undefined
       })
     });
@@ -638,16 +633,9 @@ async function filterTable(){
       tbody.innerHTML = '';
       const row = tbody.insertRow();
 
-      let mailType = '';
-      if(mail.sender && mail.recipient) {
-        mailType = 'Incoming'; // We treat mails with both sender and recipient as Incoming (customize as needed)
-      } else if(mail.sender) {
-        mailType = 'Incoming';
-      } else if(mail.recipient) {
-        mailType = 'Outgoing';
-      } else {
-        mailType = 'Unknown';
-      }
+      // Use mail_type from backend if available
+      let mailType = (mail.mail_type) ? mail.mail_type : 'Unknown';
+
       row.insertCell(0).textContent = mailType;
       row.insertCell(1).textContent = mail.eksu_ref || ''; // Display EKSU Ref
       row.insertCell(2).textContent = mail.document;
@@ -655,6 +643,7 @@ async function filterTable(){
       row.insertCell(4).textContent = mail.recipient;
       row.insertCell(5).textContent = mail.name; // Using name as department placeholder
       row.insertCell(6).textContent = new Date(mail.date_sent).toLocaleString();
+
 
       const statusCell = row.insertCell(7);
       const select = document.createElement('select');
@@ -732,7 +721,8 @@ function generateReport(){
   const tbody=document.getElementById('generatedReportTbody');
   tbody.innerHTML='';
   document.querySelectorAll('#mailTable tbody tr').forEach(row=>{
-    const mailType=row.cells[0].textContent;
+    // Use mail type from row directly, no inference
+    let mailType = row.cells[0].textContent.trim();
     const status=row.cells[6].querySelector('select').value.toLowerCase();
     if(filter==='All' || mailType===filter || status===filter.toLowerCase()){
       const newRow=tbody.insertRow();
